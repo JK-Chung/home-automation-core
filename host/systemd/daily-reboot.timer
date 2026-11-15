@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily reboot at 03:00
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+# a missed reboot (machine was off) is skipped, never "caught up" right after boot
+Persistent=false
+
+[Install]
+WantedBy=timers.target

@@ -1,21 +1,22 @@
+# Home Assistant, reachable from the internet through an ngrok tunnel.
+# Credentials come from .env next to this file (see .env.example).
+# Image tags pin a *major* version: patch/minor updates arrive automatically
+# (host/systemd/container-autoupdate.*); bump a major by editing the tag.
+
 # ngrok's fixed IP: used for its network address AND passed to Home Assistant,
-# which adds it to http.trusted_proxies on every start (ops/ha-trust-ngrok.py).
+# which trusts it as a reverse proxy (homeassistant/trust-ngrok-proxy.py).
 x-ngrok-ip: &ngrok_ip 172.19.0.5
 
 services:
   ngrok:
-    image: ngrok/ngrok:3   # auto minor/patch within major 3; bump major manually
+    image: ngrok/ngrok:3                 # major: semver (3.x.y)
     container_name: ngrok
-    command:
-      - "http"
-      - "http://homeassistant:8123"
-      - "--log=stdout"
+    command: ["http", "http://homeassistant:8123", "--log=stdout"]
     ports:
-      - 4040:4040
+      - 4040:4040                        # ngrok inspector (shows the public URL)
     restart: always
     environment:
-      # Token lives in .env next to this file (chmod 600)
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:?set NGROK_AUTHTOKEN in .env}
     networks:
       ngrok:
         ipv4_address: *ngrok_ip
@@ -24,16 +25,16 @@ services:
         condition: service_healthy
 
   homeassistant:
-    image: ghcr.io/home-assistant/home-assistant:2026.11   # auto patch only; bump YYYY.M manually
+    image: ghcr.io/home-assistant/home-assistant:2026.11   # major: monthly release (YYYY.M)
     container_name: homeassistant
     privileged: true
     restart: always
-    # Ensure HA trusts ngrok as a reverse proxy before HA starts. If that fails the
-    # container exits (and restart: always retries) - see `docker logs homeassistant`.
+    # Trust ngrok as a reverse proxy before HA starts. If that fails, the
+    # container exits (restart: always retries) - see `docker logs homeassistant`.
     entrypoint:
       - /bin/sh
       - -c
-      - python3 -I /usr/local/bin/ha-trust-ngrok.py && exec /init
+      - python3 -I /usr/local/bin/trust-ngrok-proxy.py && exec /init
     environment:
       NGROK_PROXY_IP: *ngrok_ip
     ports:
@@ -41,12 +42,11 @@ services:
     networks:
       - ngrok
     volumes:
-      # Relative paths resolve against this file's directory, NOT the shell's
-      # current directory (${PWD} broke when cron ran compose from /root).
-      - ./.home-assistant/config:/config
-      - ./ops/ha-trust-ngrok.py:/usr/local/bin/ha-trust-ngrok.py:ro
+      # Relative paths resolve against this file's directory.
+      - ./data/homeassistant:/config     # HA config + database (not in git)
+      - ./homeassistant/trust-ngrok-proxy.py:/usr/local/bin/trust-ngrok-proxy.py:ro
       - /etc/localtime:/etc/localtime:ro
-      - /run/dbus:/run/dbus:ro
+      - /run/dbus:/run/dbus:ro           # Bluetooth
     healthcheck:
       test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:8123/manifest.json"]
       interval: 30s

@@ -1,5 +1,5 @@
 [Unit]
-Description=Home Assistant + ngrok compose stack (docker compose up -d)
+Description=Home Assistant + ngrok containers (docker compose up -d)
 Requires=docker.service
 After=docker.service network-online.target
 Wants=network-online.target
@@ -7,9 +7,9 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-WorkingDirectory=/home/raspberrypi/Desktop
-ExecStart=/usr/bin/docker compose up -d
-# first boot of a fresh Pi pulls ~3 GB of images
+WorkingDirectory=@PROJECT_DIR@
+ExecStart=/usr/bin/env docker compose up -d
+# the first start on a fresh machine pulls ~3.5 GB of images
 TimeoutStartSec=30min
 
 [Install]

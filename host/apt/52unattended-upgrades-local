@@ -1,0 +1,15 @@
+// Installed by install.sh on apt-based systems (Debian, Ubuntu, Raspberry Pi OS).
+// Upgrade everything from the distro (not just security) plus Docker's repo.
+Unattended-Upgrade::Origins-Pattern {
+        "origin=${distro_id},codename=${distro_codename}";
+        "origin=${distro_id},codename=${distro_codename}-updates";
+        "origin=${distro_id},codename=${distro_codename}-security";
+        "origin=Raspberry Pi Foundation,codename=${distro_codename}";  // no-op off a Pi
+        "origin=Docker,label=Docker CE";
+};
+
+// Keep locally modified config files instead of skipping the package forever.
+Dpkg::Options {
+        "--force-confdef";
+        "--force-confold";
+};

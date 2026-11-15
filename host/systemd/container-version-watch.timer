@@ -1,5 +1,5 @@
 [Unit]
-Description=Daily container major-version check
+Description=Daily container major-version check (09:00)
 
 [Timer]
 OnCalendar=*-*-* 09:00:00

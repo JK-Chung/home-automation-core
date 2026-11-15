@@ -1,0 +1,6 @@
+[Unit]
+Description=Daily reboot (applies kernel/library updates)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/env systemctl reboot

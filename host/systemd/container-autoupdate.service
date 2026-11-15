@@ -1,0 +1,12 @@
+[Unit]
+Description=Pull newer patch/minor images and recreate changed containers
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=@PROJECT_DIR@
+ExecStart=/usr/bin/env docker compose pull
+ExecStart=/usr/bin/env docker compose up -d
+ExecStart=/usr/bin/env docker image prune -f

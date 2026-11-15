@@ -1,14 +1,14 @@
-# --- secrets: never commit ---
+# Credentials (see .env.example)
 .env
 *.env
-!*.env.example
-.secrets/
+!.env.example
 
-# --- Home Assistant: never commit (config/data restored from HA backups;
-# ops/ha-trust-ngrok.sh re-adds the ngrok proxy trust)
-.home-assistant/
+# Home Assistant's config, database and secrets. Restore it from an HA backup.
+data/
 
-# --- backups / scratch ---
+# Local backups and editor/runtime leftovers
 backups/
 *.tar
+*.tgz
 *.bak*
+__pycache__/

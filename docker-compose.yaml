@@ -1,0 +1,64 @@
+# ngrok's fixed IP: used for its network address AND passed to Home Assistant,
+# which adds it to http.trusted_proxies on every start (ops/ha-trust-ngrok.py).
+x-ngrok-ip: &ngrok_ip 172.19.0.5
+
+services:
+  ngrok:
+    image: ngrok/ngrok:3   # auto minor/patch within major 3; bump major manually
+    container_name: ngrok
+    command:
+      - "http"
+      - "http://homeassistant:8123"
+      - "--log=stdout"
+    ports:
+      - 4040:4040
+    restart: always
+    environment:
+      # Token lives in .env next to this file (chmod 600)
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    networks:
+      ngrok:
+        ipv4_address: *ngrok_ip
+    depends_on:
+      homeassistant:
+        condition: service_healthy
+
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:2026.11   # auto patch only; bump YYYY.M manually
+    container_name: homeassistant
+    privileged: true
+    restart: always
+    # Ensure HA trusts ngrok as a reverse proxy before HA starts. If that fails the
+    # container exits (and restart: always retries) - see `docker logs homeassistant`.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - python3 -I /usr/local/bin/ha-trust-ngrok.py && exec /init
+    environment:
+      NGROK_PROXY_IP: *ngrok_ip
+    ports:
+      - 8123:8123
+    networks:
+      - ngrok
+    volumes:
+      # Relative paths resolve against this file's directory, NOT the shell's
+      # current directory (${PWD} broke when cron ran compose from /root).
+      - ./.home-assistant/config:/config
+      - ./ops/ha-trust-ngrok.py:/usr/local/bin/ha-trust-ngrok.py:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /run/dbus:/run/dbus:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:8123/manifest.json"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+networks:
+  ngrok:
+    name: ngrok
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.19.0.0/16
+          gateway: 172.19.0.1

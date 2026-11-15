@@ -1,0 +1,6 @@
+[Unit]
+Description=Monthly maintenance reboot (loads kernel/library updates)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl reboot
